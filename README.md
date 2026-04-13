@@ -15,8 +15,6 @@
 - [Two's Complement Subtraction](#twos-complement-subtraction)
 - [Verification & Testing](#verification--testing)
 - [Results](#results)
-- [Tools Used](#tools-used)
-
 ---
 
 ## Overview
