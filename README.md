@@ -38,17 +38,6 @@ The core improvement is replacing the standard full adder (built from AND, OR, X
 ## Architecture
 
 ```
-         ┌────────────────────────────────────┐
-  A[3:0] │                                    │
-─────────►                                    ├──► Result[3:0]
-         │         4-bit ALU                  │
-  B[3:0] │                                    ├──► Carry_Out
-─────────►                                    │
-         │                                    │
-s2,s1,s0 │                                    │
-─────────►                                    │
-         └────────────────────────────────────┘
-```
 
 ```mermaid
 flowchart LR
