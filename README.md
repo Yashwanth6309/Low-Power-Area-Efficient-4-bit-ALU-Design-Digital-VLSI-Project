@@ -38,6 +38,7 @@ The core improvement is replacing the standard full adder (built from AND, OR, X
 ## Architecture
 
 ```
+```
          ┌────────────────────────────────────┐
   A[3:0] │                                    │
 ─────────►                                    ├──► Result[3:0]
@@ -50,7 +51,14 @@ s2,s1,s0 │                                    │
          └────────────────────────────────────┘
 ```
 
-![ALU Block Diagram](images/alu_block_diagram.png)
+```mermaid
+flowchart LR
+    A["A [3:0]"] -->|4-bit| ALU["4-bit ALU\nXNOR-based design\n─────────────────\nADD · SUB · AND\nOR · XOR · XNOR"]
+    B["B [3:0]"] -->|4-bit| ALU
+    C["Control\ns0, s1, s2"] -->|3-bit| ALU
+    ALU -->|4-bit| R["Result [3:0]"]
+    ALU -->|1-bit| CO["Carry_Out"]
+
 ```
 
 The ALU contains:
