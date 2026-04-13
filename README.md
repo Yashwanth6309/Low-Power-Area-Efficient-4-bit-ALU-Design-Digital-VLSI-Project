@@ -39,13 +39,16 @@ The core improvement is replacing the standard full adder (built from AND, OR, X
 
 ```
 
-```mermaid
-flowchart LR
-    A["A [3:0]"] -->|4-bit| ALU["4-bit ALU\nXNOR-based design\n─────────────────\nADD · SUB · AND\nOR · XOR · XNOR"]
-    B["B [3:0]"] -->|4-bit| ALU
-    C["Control\ns0, s1, s2"] -->|3-bit| ALU
-    ALU -->|4-bit| R["Result [3:0]"]
-    ALU -->|1-bit| CO["Carry_Out"]
+         ┌────────────────────────────────────┐
+  A[3:0] │                                    │
+─────────►                                    ├──► Result[3:0]
+         │         4-bit ALU                  │
+  B[3:0] │                                    ├──► Carry_Out
+─────────►                                    │
+         │                                    │
+s2,s1,s0 │                                    │
+─────────►                                    │
+         └────────────────────────────────────┘
 ```
 
 The ALU contains:
@@ -78,6 +81,23 @@ A standard 1-bit full adder computes:
 ```
 Sum   = A XOR B XOR Cin
 Carry = (A AND B) OR (B AND Cin) OR (A AND Cin)
+```
+
+```mermaid
+flowchart LR
+    A["A"] --> XOR1["XOR"]
+    B["B"] --> XOR1
+    XOR1 --> XOR2["XOR\n→ Sum"]
+    Cin["Cin"] --> XOR2
+    A --> AND1["AND"]
+    B --> AND1
+    B --> AND2["AND"]
+    Cin --> AND2
+    A --> AND3["AND"]
+    Cin --> AND3
+    AND1 --> OR["OR\n→ Carry"]
+    AND2 --> OR
+    AND3 --> OR
 ```
 
 This requires multiple AND, OR, and XOR gates. Each gate transition (0→1 or 1→0) consumes power, and this design has a high number of such transitions per computation.
