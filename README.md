@@ -38,7 +38,6 @@ The core improvement is replacing the standard full adder (built from AND, OR, X
 ## Architecture
 
 ```
-```
          ┌────────────────────────────────────┐
   A[3:0] │                                    │
 ─────────►                                    ├──► Result[3:0]
@@ -58,7 +57,6 @@ flowchart LR
     C["Control\ns0, s1, s2"] -->|3-bit| ALU
     ALU -->|4-bit| R["Result [3:0]"]
     ALU -->|1-bit| CO["Carry_Out"]
-
 ```
 
 The ALU contains:
@@ -102,6 +100,18 @@ The full adder is restructured to use XNOR gates as the primary building block:
 ```
 Sum   = (A XNOR B) XNOR Cin
 Carry = derived by reusing the same XNOR intermediate output
+```
+
+```mermaid
+flowchart LR
+    A["A"] --> XNOR1["XNOR\nA XNOR B"]
+    B["B"] --> XNOR1
+    XNOR1 -->|"shared signal"| XNOR2["XNOR\nwith Cin → Sum"]
+    XNOR1 -.->|"reused"| AND["AND\nCarry logic"]
+    Cin["Cin"] --> XNOR2
+    Cin --> AND
+    XNOR2 --> Sum["Sum"]
+    AND --> Carry["Carry_Out"]
 ```
 
 XNOR gates switch less frequently than XOR gates for common input patterns, so fewer transitions occur per operation. The intermediate XNOR result (A XNOR B) is shared between the Sum and Carry computations — this eliminates duplicate gate paths and reduces both power and gate count. The result is approximately **50% lower power consumption** than the conventional design at the same speed.
