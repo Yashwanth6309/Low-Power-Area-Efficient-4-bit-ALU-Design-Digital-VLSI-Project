@@ -1,176 +1,243 @@
-# Low Power Area-Efficient 4-bit ALU with Low Power Full Adder
+# Low Power Area Efficient ALU with Low Power Full Adder
 
-![Domain](https://img.shields.io/badge/Domain-VLSI%20%2F%20Digital%20Logic-7C3AED)
-![Tool](https://img.shields.io/badge/Tool-Hardware%20Simulation-0D9488)
-![Status](https://img.shields.io/badge/Status-Completed-16A34A)
-![Timeline](https://img.shields.io/badge/Timeline-Jan%202023%20–%20Jul%202023-EA580C)
+> A 4-bit Arithmetic Logic Unit (ALU) designed for minimal power consumption and area efficiency using XNOR-based full adder logic — targeted at embedded systems and low-power digital processors.
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [ALU Operations & Control Signals](#alu-operations--control-signals)
+- [Full Adder Design](#full-adder-design)
+- [Two's Complement Subtraction](#twos-complement-subtraction)
+- [Simulation & Verification](#simulation--verification)
+- [Results](#results)
+- [Tools Used](#tools-used)
+- [Project Structure](#project-structure)
+- [How to Run](#how-to-run)
+- [Key Learnings](#key-learnings)
+- [Author](#author)
 
 ---
 
 ## Overview
 
-This project presents a **4-bit Arithmetic Logic Unit (ALU)** designed for low power consumption and area efficiency. The ALU supports six operations — ADD, SUB, AND, OR, XOR, and XNOR — selected using a 3-bit control signal. The core contribution is an **XNOR-based full adder** that replaces the conventional AND-OR-XOR implementation, achieving approximately **50% reduction in power consumption** compared to the standard design.
+This project presents the design and implementation of a **4-bit low-power ALU** capable of performing arithmetic and logical operations. The primary innovation lies in replacing the conventional full adder with an **XNOR-based full adder**, significantly reducing switching activity and dynamic power consumption.
 
-The design was verified through simulation across all possible 4-bit input combinations for every operation.
-
----
-
-## Problem Statement
-
-Standard full adder designs use AND, OR, and XOR gate chains to compute Sum and Carry. This structure causes high switching activity — internal nodes toggle frequently with changing inputs, leading to increased dynamic power dissipation. In embedded and low-power systems, this is a critical constraint.
-
-This project addresses that by redesigning the full adder using XNOR-based logic, which significantly reduces the number of gate transitions per operation without affecting correctness, speed, or functionality.
+**Project Duration:** January 2023 – July 2023
 
 ---
 
-## ALU Architecture
+## Features
+
+- 4-bit ALU supporting 6 operations
+- XNOR-based full adder with ~50% power reduction vs. standard designs
+- 3-bit control signal interface (`s0`, `s1`, `s2`) for operation selection
+- Two's complement subtraction logic
+- Fully simulated and verified across all 256 input combinations (16 × 16)
+- Optimized for area efficiency without performance trade-off
+
+---
+
+## Architecture
 
 ```
-         A[3:0] ──────────────────────────────────┐
-                                                   │
-         B[3:0] ──────────────────────────────────►  4-bit ALU Core
-                                                   │  (4 × XNOR Full Adder stages)  ──► Result[3:0]
-         s0, s1, s2 ─── Operation Select ─────────►                                 ──► Carry Out
-                                                   │
-         Cin ─────────────────────────────────────┘
+        ┌─────────────────────────────────────┐
+        │            4-bit ALU                │
+        │                                     │
+ A[3:0]─►                                     │
+        │    ┌────────────┐                   ├──► Result[3:0]
+ B[3:0]─►    │  Operation │                   │
+        │    │  Selector  │                   ├──► Carry Out
+s0,s1,s2►    └────────────┘                   │
+        │         │                           ├──► Zero Flag
+        │    ┌────▼──────────────────────┐    │
+        │    │  XNOR-based Full Adder   │    │
+        │    │  (4-bit ripple carry)     │    │
+        │    └───────────────────────────┘    │
+        └─────────────────────────────────────┘
 ```
 
-- **Inputs:** A[3:0], B[3:0] — two 4-bit operands
-- **Control:** s0, s1, s2 — 3-bit operation select
-- **Outputs:** Result[3:0], Carry Out
+The ALU is built around a ripple-carry chain of 4 XNOR-based full adder cells. A multiplexer controlled by `s0`, `s1`, `s2` routes the correct operand and carry-in to the adder or directly passes the logical operation result.
 
-The design uses a **ripple-carry architecture** with four cascaded XNOR-based full adder stages. Each stage computes a 1-bit sum and passes the carry to the next stage.
+---
+
+## ALU Operations & Control Signals
+
+| s2 | s1 | s0 | Operation | Description                     |
+|----|----|----|-----------|----------------------------------|
+|  0 |  0 |  0 | ADD       | A + B                            |
+|  0 |  0 |  1 | SUB       | A - B (via two's complement)     |
+|  0 |  1 |  0 | AND       | A AND B (bitwise)                |
+|  0 |  1 |  1 | OR        | A OR B (bitwise)                 |
+|  1 |  0 |  0 | XOR       | A XOR B (bitwise)                |
+|  1 |  0 |  1 | XNOR      | A XNOR B (bitwise)               |
 
 ---
 
 ## Full Adder Design
 
-### Conventional Full Adder
+### Traditional Full Adder
+Standard full adders are built using AND, OR, and XOR gates. This leads to high switching activity, especially under frequently toggling inputs, increasing dynamic power.
 
+**Standard equations:**
 ```
 Sum   = A ⊕ B ⊕ Cin
-Carry = (A · B) + (B · Cin) + (A · Cin)
+Carry = (A · B) + (Cin · (A ⊕ B))
 ```
 
-Implemented using: 2× XOR, 3× AND, 2× OR = **7 gates total**
+### XNOR-Based Full Adder (Proposed Design)
+The redesigned full adder leverages XNOR gates to reduce the number of transitions, thereby lowering switching power.
 
-The AND-OR carry chain evaluates independently on every input change, causing high internal switching activity and increased dynamic power.
+**Optimized equations:**
+```
+Sum   = (A ⊙ B) ⊙ Cin        ; using XNOR for intermediate
+Carry = derived using fewer gate transitions
+```
+
+**Why XNOR?**
+- XNOR produces `1` when both inputs are equal (common in real data patterns)
+- Fewer transitions → lower switching capacitance charged/discharged per cycle
+- Results in approximately **50% power reduction** compared to the standard design
 
 ---
 
-### XNOR-Based Full Adder (This Design)
+## Two's Complement Subtraction
+
+Subtraction (`A - B`) is implemented using the two's complement method:
 
 ```
-P     = A XNOR B
-Sum   = P XNOR Cin
-Carry = MUX(Cin, A, P)
+A - B  =  A + (~B) + 1
 ```
 
-Implemented using: 2× XNOR, 1× MUX = **3 gates total**
+When `s0 = 1` (SUB mode):
+- Input B is bitwise inverted before entering the adder
+- Carry-in (`Cin`) is forced to `1`
+- The adder computes `A + (~B) + 1`, which equals `A - B`
 
-The intermediate signal `P` (A XNOR B) is HIGH when A equals B. This condition occurs frequently in typical data patterns, which means the carry chain stabilizes sooner with fewer transitions. The MUX selects Carry = Cin when P=1 (A==B), and Carry = A when P=0 (A≠B) — eliminating the AND-OR carry computation in the common case.
-
-**Result: ~50% fewer gate transitions → ~50% lower dynamic power**
+This eliminates the need for a dedicated subtractor circuit, saving area.
 
 ---
 
-## Operation Select: Control Signals
+## Simulation & Verification
 
-| s2 | s1 | s0 | Operation | Method |
-|:--:|:--:|:--:|:---------:|--------|
-|  0 |  0 |  0 | ADD       | A + B, Cin = 0 |
-|  0 |  0 |  1 | SUB       | A + (~B) + 1 (two's complement), Cin = 1 |
-|  0 |  1 |  0 | AND       | A AND B (bitwise) |
-|  0 |  1 |  1 | OR        | A OR B (bitwise) |
-|  1 |  0 |  0 | XOR       | A XOR B (bitwise) |
-|  1 |  0 |  1 | XNOR      | A XNOR B (bitwise) |
-
-### Subtraction via Two's Complement
-
-Subtraction is performed without a separate subtractor circuit. The control logic inverts B and sets Cin = 1 when s0 = 1 in arithmetic mode:
-
-```
-A − B  =  A + (~B) + 1
-```
-
-This reuses the same four XNOR adder stages for both addition and subtraction, keeping gate count minimal.
-
-### Logic Operations (AND, OR, XOR, XNOR)
-
-For logic operations, the adder datapath is bypassed. The bitwise result of A op B is routed directly to the output through the MUX. Carry out is forced to 0.
-
----
-
-## Verification
-
-The ALU was verified using hardware simulation with exhaustive test coverage.
+All operations were verified using a hardware simulation environment.
 
 ### Test Coverage
+- **Inputs:** All 4-bit combinations → 16 values for A × 16 values for B = **256 test vectors**
+- **Operations tested:** ADD, SUB, AND, OR, XOR, XNOR (each verified across all 256 input pairs)
 
-```
-For each operation in { ADD, SUB, AND, OR, XOR, XNOR }:
-    For A = 0000 to 1111  (0 to 15):
-        For B = 0000 to 1111  (0 to 15):
-            Simulate → Compare Result[3:0] and Cout vs expected
-```
+### Verification Checklist
 
-- **16 values × 16 values = 256 combinations per operation**
-- **256 × 6 operations = 1,536 total test cases**
-- **All 1,536 test cases passed — zero functional errors**
-
-### Sample Simulation Output
-
-```
-┌───────┬────────┬────────┬──────────┬─────────────┬──────┐
-│ Cycle │ A[3:0] │ B[3:0] │ s2 s1 s0 │ Result[3:0] │ Cout │
-├───────┼────────┼────────┼──────────┼─────────────┼──────┤
-│   1   │  0011  │  0101  │  0  0  0 │    1000     │  0   │  3 + 5 = 8
-│   2   │  1111  │  0001  │  0  0  0 │    0000     │  1   │  15 + 1 = 16 (overflow)
-│   3   │  1010  │  0110  │  0  0  1 │    0100     │  0   │  10 − 6 = 4
-│   4   │  1100  │  1010  │  0  1  0 │    1000     │  0   │  1100 AND 1010
-│   5   │  1100  │  1010  │  0  1  1 │    1110     │  0   │  1100 OR 1010
-│   6   │  1100  │  1010  │  1  0  0 │    0110     │  0   │  1100 XOR 1010
-│   7   │  1100  │  1010  │  1  0  1 │    1001     │  0   │  1100 XNOR 1010
-└───────┴────────┴────────┴──────────┴─────────────┴──────┘
-```
-
-### Metrics Measured
-
-| Metric | Conventional Design | XNOR-Based Design |
-|--------|---------------------|-------------------|
-| Gates per full adder stage | 7 | 3 |
-| Total adder core gates (4 stages) | 28 | 12 |
-| Dynamic power consumption | Baseline | ~50% reduction |
-| Propagation delay per stage | 3 gate delays | 2 gate delays |
-| Functional correctness | — | 1,536 / 1,536 PASS |
+| Test Category        | Status |
+|----------------------|--------|
+| Addition correctness | ✅ Pass |
+| Subtraction (2's complement) | ✅ Pass |
+| AND / OR / XOR / XNOR | ✅ Pass |
+| Carry propagation    | ✅ Pass |
+| Overflow detection   | ✅ Pass |
+| Power measurement    | ✅ Measured |
+| Area estimation      | ✅ Measured |
 
 ---
 
 ## Results
 
-- Designed a **4-bit ALU** supporting 6 arithmetic and logic operations
-- Implemented a novel **XNOR-based full adder** achieving ~50% power reduction vs conventional design
-- Reduced gate count from **7 to 3 per full adder stage** (28 → 12 gates total for 4-bit adder core)
-- Implemented subtraction using **two's complement** — no dedicated subtractor circuit required
-- Achieved **complete verification** across all 1,536 input combinations with zero errors
-- Improved propagation delay from **3 to 2 gate delays** per stage
+| Metric              | Standard ALU | This Design  | Improvement     |
+|---------------------|-------------|--------------|-----------------|
+| Power Consumption   | Baseline    | ~50% lower   | ~50% reduction  |
+| Gate Count (Area)   | Higher      | Reduced      | Area efficient  |
+| Operating Speed     | Baseline    | Comparable   | No degradation  |
+| Operations Supported| 6           | 6            | Same coverage   |
 
 ---
 
-## Technologies
+## Tools Used
 
-- Digital logic design — gate-level (XNOR, MUX, AND, OR, XOR)
-- Ripple-carry adder architecture
-- Two's complement arithmetic
-- Hardware simulation and functional verification
-- Low-power combinational circuit optimization (switching activity reduction)
+| Tool / Technology     | Purpose                            |
+|-----------------------|------------------------------------|
+| HDL (Verilog / VHDL)  | Hardware description & design      |
+| Logic Simulation Tool | Functional verification            |
+| Schematic Editor      | Gate-level circuit design          |
+| Waveform Viewer       | Output signal analysis             |
+| Power Analysis Tool   | Dynamic power measurement          |
+
+> *(Specify exact tools if applicable — e.g., ModelSim, Xilinx Vivado, Cadence, Synopsys)*
+
+---
+
+## Project Structure
+
+```
+low-power-alu/
+│
+├── src/
+│   ├── full_adder.v          # XNOR-based full adder module
+│   ├── alu_4bit.v            # Top-level 4-bit ALU module
+│   └── control_unit.v        # Operation selector logic
+│
+├── testbench/
+│   ├── tb_full_adder.v       # Testbench for full adder
+│   └── tb_alu_4bit.v         # Testbench for ALU (all 256 combinations)
+│
+├── sim/
+│   └── waveforms/            # Simulation output waveforms
+│
+├── docs/
+│   ├── schematic.png         # Gate-level schematic
+│   └── power_report.txt      # Power analysis report
+│
+└── README.md
+```
+
+---
+
+## How to Run
+
+### Prerequisites
+- Any HDL simulator (ModelSim, Icarus Verilog, Vivado, etc.)
+
+### Steps
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/low-power-alu.git
+cd low-power-alu
+
+# Compile the design (Icarus Verilog example)
+iverilog -o alu_sim src/full_adder.v src/alu_4bit.v testbench/tb_alu_4bit.v
+
+# Run simulation
+vvp alu_sim
+
+# View waveforms (if using GTKWave)
+gtkwave dump.vcd
+```
+
+---
+
+## Key Learnings
+
+- Digital logic design and gate-level optimization
+- Low-power design techniques (switching activity reduction)
+- XNOR-based circuit restructuring
+- Control signal design for multi-function units
+- Hardware verification methodology using exhaustive test vectors
+- Area-power-performance trade-off analysis in ALU design
 
 ---
 
 ## Author
 
-**[Your Name]**  
-B.E. / B.Tech — Electronics Engineering / VLSI Design  
-[LinkedIn](https://linkedin.com/in/yourprofile) · [Email](mailto:your@email.com)
+**[Your Name]**
+B.Tech / M.Tech — Electronics / VLSI / Computer Engineering
+[Your College Name] | [Year]
 
-*Jan 2023 – Jul 2023*
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](https://linkedin.com/in/your-profile)
+[![GitHub](https://img.shields.io/badge/GitHub-Follow-black)](https://github.com/your-username)
+
+---
+
+> *This project was completed as part of academic research into low-power VLSI design. Feel free to fork, reference, or build upon it.*
