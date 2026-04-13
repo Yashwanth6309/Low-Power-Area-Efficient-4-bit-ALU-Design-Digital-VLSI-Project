@@ -33,7 +33,7 @@ The core improvement is replacing the standard full adder (built from AND, OR, X
 - XNOR-based full adder with ~50% lower power than the conventional design
 - 3-bit control signal (s0, s1, s2) for operation selection
 - Two's complement subtraction reusing the existing adder — no extra hardware
-- Exhaustive simulation over all 256 input combinations (16 × 16)
+- Exhaustive simulation over all 256 input combinations (16 × 16) using ModelSim Student Edition
 
 ---
 
@@ -134,13 +134,13 @@ When SUB is selected (s0 = 1), each bit of B passes through an XOR gate with s0,
 
 ## Verification & Testing
 
-The ALU was verified through digital simulation using a logic simulation tool.
+The ALU was designed in Verilog and verified through digital simulation using **ModelSim Student Edition**.
 
 **What was tested:**
 - All 4-bit input combinations for A and B — 16 × 16 = 256 input pairs
 - All 6 operations applied to each pair — totalling 1,536 simulated cases
 - Correct Sum and Carry output for ADD across all input values
-- Correct result for SUB including cases where the result requires borrow (carry-out = 0 in two's complement)
+- Correct result for SUB including cases where the result requires borrow
 - Correct bitwise output for AND, OR, XOR, XNOR
 - Corner cases: addition overflow (e.g. 1111 + 0001), zero result (A − A), all-zeros, all-ones inputs
 
@@ -168,11 +168,7 @@ The main gain comes from the XNOR-based full adder: fewer gate transitions per o
 
 ## Tools Used
 
-| Tool | What it was used for |
-|------|----------------------|
-| HDL (Verilog / VHDL) | Writing the RTL description of the ALU and full adder |
-| Logic Simulator (e.g. ModelSim / Vivado Simulator) | Running test cases and verifying outputs |
-| Synthesis Tool (e.g. Cadence / Synopsys / Xilinx) | Converting HDL to gate-level netlist; measuring area |
-| Power Analysis | Estimating dynamic power from switching activity in simulation |
-
-> Note: Replace the tool names above with the exact tools you used in your environment.
+| Tool | Purpose |
+|------|---------|
+| Verilog (HDL) | Writing the RTL design of the ALU and full adder |
+| ModelSim Student Edition | Simulating the design and verifying outputs against all input combinations |
