@@ -70,10 +70,6 @@ The ALU contains:
 | OR        | A OR B (bitwise)          | 0 1 1              |
 | XOR       | A XOR B (bitwise)         | 1 0 0              |
 | XNOR      | A XNOR B (bitwise)        | 1 0 1              |
-| —         | Not used                  | 1 1 0              |
-| —         | Not used                  | 1 1 1              |
-
-Only 6 of the 8 possible control combinations are used. The remaining two (1 1 0 and 1 1 1) are not assigned to any operation in this design.
 
 ---
 
@@ -113,8 +109,6 @@ XNOR gates switch less frequently than XOR gates for common input patterns, so f
 | 0  | 1  | 1  | OR                |
 | 1  | 0  | 0  | XOR               |
 | 1  | 0  | 1  | XNOR              |
-| 1  | 1  | 0  | Not used          |
-| 1  | 1  | 1  | Not used          |
 
 All six functional units run in parallel. The control signals only determine which result the output multiplexer passes through — this keeps the critical path delay the same regardless of which operation is selected.
 
@@ -159,16 +153,7 @@ All 1,536 test cases produced correct outputs, and the power measurement confirm
 |---------------------|--------------------|---------------------------------|
 | Power Consumption   | Baseline           | ~50% lower                      |
 | Full Adder Gates    | More (no sharing)  | Fewer (XNOR output reused)       |
-| Operations Supported| 6                  | 6                                |
-| Verification        | —                  | 1,536 test cases, all passing    |
 
 The main gain comes from the XNOR-based full adder: fewer gate transitions per operation and shared intermediate signals reduce both power and gate count, without changing the number of supported operations or slowing down the circuit.
 
----
 
-## Tools Used
-
-| Tool | Purpose |
-|------|---------|
-| Verilog (HDL) | Writing the RTL design of the ALU and full adder |
-| ModelSim Student Edition | Simulating the design and verifying outputs against all input combinations |
