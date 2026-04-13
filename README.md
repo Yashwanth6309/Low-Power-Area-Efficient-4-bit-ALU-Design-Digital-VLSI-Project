@@ -1,6 +1,6 @@
 # Low Power Area Efficient ALU with Low Power Full Adder
 
-> A 4-bit Arithmetic Logic Unit (ALU) designed with XNOR-based full adder logic to achieve ~50% reduction in power consumption compared to conventional designs.
+> A 4-bit ALU designed using an XNOR-based full adder to reduce power consumption by ~50% compared to a conventional design, while supporting 6 arithmetic and logic operations through a 3-bit control signal.
 
 ---
 
@@ -16,29 +16,24 @@
 - [Verification & Testing](#verification--testing)
 - [Results](#results)
 - [Tools Used](#tools-used)
-- [Project Timeline](#project-timeline)
-- [What I Learned](#what-i-learned)
 
 ---
 
 ## Overview
 
-This project presents the design and verification of a **4-bit low-power ALU** optimized for embedded systems and small processors where energy efficiency and silicon area are critical constraints.
+This project designs a **4-bit low-power ALU** built for use cases where minimizing energy consumption and circuit area matters — such as embedded processors and IoT hardware.
 
-The key innovation is replacing the conventional AND/OR/XOR-based full adder with an **XNOR-based full adder**, which significantly reduces switching activity — the primary source of dynamic power consumption in CMOS digital circuits.
-
-The ALU supports **6 operations** (ADD, SUB, AND, OR, XOR, XNOR) selectable via a 3-bit control signal, making it compact, flexible, and suitable for integration into low-power processor datapaths.
+The core improvement is replacing the standard full adder (built from AND, OR, XOR gates) with an **XNOR-based full adder**. XNOR gates produce fewer signal transitions for typical input patterns, which directly lowers dynamic power consumption. The ALU supports 6 operations — ADD, SUB, AND, OR, XOR, XNOR — all selected through a compact 3-bit control input.
 
 ---
 
 ## Features
 
-- 4-bit datapath with 6 selectable operations
-- XNOR-based full adder — reduces switching transitions, cuts dynamic power by ~50%
+- 4-bit datapath supporting 6 operations
+- XNOR-based full adder with ~50% lower power than the conventional design
 - 3-bit control signal (s0, s1, s2) for operation selection
-- Two's complement subtraction using the existing adder hardware
-- Exhaustive simulation across all 256 input combinations (16 × 16)
-- Verified for correctness, power, area, and timing
+- Two's complement subtraction reusing the existing adder — no extra hardware
+- Exhaustive simulation over all 256 input combinations (16 × 16)
 
 ---
 
@@ -51,70 +46,66 @@ The ALU supports **6 operations** (ADD, SUB, AND, OR, XOR, XNOR) selectable via 
          │         4-bit ALU                  │
   B[3:0] │                                    ├──► Carry_Out
 ─────────►                                    │
-         │                                    ├──► Zero Flag
+         │                                    │
 s2,s1,s0 │                                    │
 ─────────►                                    │
          └────────────────────────────────────┘
 ```
 
-The ALU consists of:
-- **4 XNOR-based full adder cells** chained as a ripple-carry adder
-- **Logic operation units** (AND, OR, XOR, XNOR) operating in parallel on inputs A and B
-- **A multiplexer** controlled by s0, s1, s2 to select and route the appropriate result to the output
-- **B-input inversion + carry-in** for two's complement subtraction
+The ALU contains:
+- **4 XNOR-based full adder cells** connected as a ripple-carry adder
+- **Parallel logic units** for AND, OR, XOR, XNOR operating on A and B simultaneously
+- **A multiplexer** driven by s0, s1, s2 that selects which result appears at the output
+- **Conditional B-inversion** via XOR gates and a forced carry-in of 1 for subtraction
 
 ---
 
 ## ALU Operations
 
-| Operation | Description                       | Control (s2 s1 s0) |
-|-----------|-----------------------------------|--------------------|
-| ADD       | A + B                             | 0 0 0              |
-| SUB       | A − B (via two's complement)      | 0 0 1              |
-| AND       | A AND B (bitwise)                 | 0 1 0              |
-| OR        | A OR B (bitwise)                  | 0 1 1              |
-| XOR       | A XOR B (bitwise)                 | 1 0 0              |
-| XNOR      | A XNOR B (bitwise)                | 1 0 1              |
+| Operation | Description               | Control (s2 s1 s0) |
+|-----------|---------------------------|--------------------|
+| ADD       | A + B                     | 0 0 0              |
+| SUB       | A − B (two's complement)  | 0 0 1              |
+| AND       | A AND B (bitwise)         | 0 1 0              |
+| OR        | A OR B (bitwise)          | 0 1 1              |
+| XOR       | A XOR B (bitwise)         | 1 0 0              |
+| XNOR      | A XNOR B (bitwise)        | 1 0 1              |
+| —         | Not used                  | 1 1 0              |
+| —         | Not used                  | 1 1 1              |
+
+Only 6 of the 8 possible control combinations are used. The remaining two (1 1 0 and 1 1 1) are not assigned to any operation in this design.
 
 ---
 
 ## Full Adder Design
 
-### Conventional Design (Standard)
+### Conventional Design
 
-A traditional 1-bit full adder computes:
+A standard 1-bit full adder computes:
 
 ```
 Sum   = A XOR B XOR Cin
 Carry = (A AND B) OR (B AND Cin) OR (A AND Cin)
 ```
 
-This uses a mix of AND, OR, and XOR gates with high gate count and frequent logic transitions, leading to elevated dynamic power consumption.
+This requires multiple AND, OR, and XOR gates. Each gate transition (0→1 or 1→0) consumes power, and this design has a high number of such transitions per computation.
 
-### Proposed Design (XNOR-Based)
+### XNOR-Based Design (This Project)
 
-The redesigned full adder restructures the sum and carry equations to maximize use of XNOR gates:
+The full adder is restructured to use XNOR gates as the primary building block:
 
 ```
 Sum   = (A XNOR B) XNOR Cin
-Carry = derived from XNOR intermediate signals
+Carry = derived by reusing the same XNOR intermediate output
 ```
 
-**Why XNOR reduces power:**
-- XNOR gates produce fewer signal transitions (0→1 or 1→0) for typical input patterns
-- Fewer transitions → less charging/discharging of node capacitances
-- Dynamic power: P = α · C · V² · f — reducing α (activity factor) directly reduces power
-- Reusing intermediate XNOR signals for both Sum and Carry avoids redundant gate paths
-
-This redesign achieves approximately **50% reduction in power consumption** compared to the conventional full adder at the same operating frequency.
+XNOR gates switch less frequently than XOR gates for common input patterns, so fewer transitions occur per operation. The intermediate XNOR result (A XNOR B) is shared between the Sum and Carry computations — this eliminates duplicate gate paths and reduces both power and gate count. The result is approximately **50% lower power consumption** than the conventional design at the same speed.
 
 ---
 
 ## Control Signal Truth Table
 
-The 3-bit control input (s2, s1, s0) drives a multiplexer that selects among the parallel functional units:
-
-| s2 | s1 | s0 | Selected Operation |
+| s2 | s1 | s0 | Operation Selected |
 |----|----|----|-------------------|
 | 0  | 0  | 0  | ADD               |
 | 0  | 0  | 1  | SUB               |
@@ -122,118 +113,66 @@ The 3-bit control input (s2, s1, s0) drives a multiplexer that selects among the
 | 0  | 1  | 1  | OR                |
 | 1  | 0  | 0  | XOR               |
 | 1  | 0  | 1  | XNOR              |
-| 1  | 1  | 0  | Reserved          |
-| 1  | 1  | 1  | Reserved          |
+| 1  | 1  | 0  | Not used          |
+| 1  | 1  | 1  | Not used          |
 
-All functional units operate in parallel; only the selected output is passed to the result bus. This avoids sequential reconfiguration and keeps the critical path delay uniform across operations.
+All six functional units run in parallel. The control signals only determine which result the output multiplexer passes through — this keeps the critical path delay the same regardless of which operation is selected.
 
 ---
 
 ## Two's Complement Subtraction
 
-Subtraction (A − B) is implemented using two's complement arithmetic — no dedicated subtractor hardware is needed:
+Subtraction is performed without a separate subtractor circuit:
 
 ```
 A − B  =  A + (NOT B) + 1
 ```
 
-**Hardware implementation:**
-- When s0 = 1 (SUB mode), each bit of B is inverted through XOR gates (XOR with s0 acts as a conditional inverter)
-- The carry-in (Cin) of the least-significant full adder cell is forced to 1
-- The existing ripple-carry adder computes the result
-
-This reuse of adder hardware for subtraction significantly reduces area overhead compared to implementing a separate subtractor.
+When SUB is selected (s0 = 1), each bit of B passes through an XOR gate with s0, which inverts it. The carry-in of the first full adder is set to 1. The same ripple-carry adder that handles addition then computes A + (NOT B) + 1, which equals A − B by two's complement. This reuse of hardware keeps area low.
 
 ---
 
 ## Verification & Testing
 
-### Test Coverage
+The ALU was verified through digital simulation using a logic simulation tool.
 
-- **Input space:** All combinations of 4-bit inputs A[3:0] and B[3:0] → 16 × 16 = **256 input pairs**
-- **Operations tested:** All 6 operations for each input pair
-- **Total test vectors:** 1,536 unique test cases
+**What was tested:**
+- All 4-bit input combinations for A and B — 16 × 16 = 256 input pairs
+- All 6 operations applied to each pair — totalling 1,536 simulated cases
+- Correct Sum and Carry output for ADD across all input values
+- Correct result for SUB including cases where the result requires borrow (carry-out = 0 in two's complement)
+- Correct bitwise output for AND, OR, XOR, XNOR
+- Corner cases: addition overflow (e.g. 1111 + 0001), zero result (A − A), all-zeros, all-ones inputs
 
-### Verification Methodology
+**What was measured after simulation:**
+- Power consumption — compared between the XNOR-based design and the conventional full adder under the same input switching conditions
+- Gate count / circuit area — confirmed that XNOR reuse reduces the number of gates needed
+- Critical path delay — checked that the new design meets the same timing as the conventional one
 
-1. **Functional simulation** — Each operation verified against expected outputs derived from Boolean equations
-2. **Corner case testing** — Overflow detection (e.g., 0xF + 0x1), zero result (A − A), all-ones, all-zeros
-3. **Power simulation** — Toggle activity measured across all input patterns to confirm reduced switching
-4. **Timing analysis** — Critical path delay verified to meet target frequency
-5. **Area analysis** — Gate count and layout area compared against conventional ALU baseline
-
-### Sample Test Vectors
-
-| A (4-bit) | B (4-bit) | Operation | Expected Output | Carry Out |
-|-----------|-----------|-----------|-----------------|-----------|
-| 0101      | 0011      | ADD       | 1000            | 0         |
-| 1010      | 0110      | SUB       | 0100            | 1         |
-| 1100      | 1010      | AND       | 1000            | —         |
-| 0110      | 0011      | OR        | 0111            | —         |
-| 1111      | 1010      | XOR       | 0101            | —         |
-| 1001      | 1001      | XNOR      | 1111            | —         |
+All 1,536 test cases produced correct outputs, and the power measurement confirmed the ~50% reduction from the redesigned full adder.
 
 ---
 
 ## Results
 
-| Metric              | Conventional ALU | This Design       | Improvement     |
-|---------------------|-----------------|-------------------|-----------------|
-| Power Consumption   | Baseline         | ~50% of baseline  | ~50% reduction  |
-| Full Adder Gate Count | Higher          | Lower (XNOR reuse)| Area efficient  |
-| Supported Operations| 6               | 6                 | —               |
-| Control Bits        | 3               | 3                 | —               |
-| Input Width         | 4-bit           | 4-bit             | —               |
-| Verification        | —               | 1,536 test vectors| Exhaustive      |
+| Metric              | Conventional Design | XNOR-Based Design (This Project) |
+|---------------------|--------------------|---------------------------------|
+| Power Consumption   | Baseline           | ~50% lower                      |
+| Full Adder Gates    | More (no sharing)  | Fewer (XNOR output reused)       |
+| Operations Supported| 6                  | 6                                |
+| Verification        | —                  | 1,536 test cases, all passing    |
+
+The main gain comes from the XNOR-based full adder: fewer gate transitions per operation and shared intermediate signals reduce both power and gate count, without changing the number of supported operations or slowing down the circuit.
 
 ---
 
 ## Tools Used
 
-| Tool / Technology      | Purpose                                      |
-|------------------------|----------------------------------------------|
-| Hardware Description Language (HDL) | RTL design of ALU and full adder |
-| Digital Simulation Tool | Functional and timing simulation            |
-| Logic Synthesis Tool   | Gate-level netlist generation and area report|
-| Power Analysis Tool    | Dynamic power estimation via toggle activity |
+| Tool | What it was used for |
+|------|----------------------|
+| HDL (Verilog / VHDL) | Writing the RTL description of the ALU and full adder |
+| Logic Simulator (e.g. ModelSim / Vivado Simulator) | Running test cases and verifying outputs |
+| Synthesis Tool (e.g. Cadence / Synopsys / Xilinx) | Converting HDL to gate-level netlist; measuring area |
+| Power Analysis | Estimating dynamic power from switching activity in simulation |
 
----
-
-## Project Timeline
-
-**January 2023 – July 2023**
-
-| Phase | Duration | Activity |
-|-------|----------|----------|
-| Literature Review | Jan – Feb 2023 | Studied conventional full adder designs and low-power techniques |
-| Full Adder Design | Feb – Mar 2023 | Designed and simulated XNOR-based full adder |
-| ALU Integration | Mar – May 2023 | Implemented 4-bit ALU with control logic and all 6 operations |
-| Verification | May – Jun 2023 | Exhaustive simulation, power measurement, timing analysis |
-| Optimization & Report | Jun – Jul 2023 | Refinement and documentation |
-
----
-
-## What I Learned
-
-- **Digital logic design** — Gate-level and RTL design for arithmetic and logic circuits
-- **Low-power design techniques** — Minimizing switching activity as a power reduction strategy
-- **Control signal architecture** — Using multiplexers and binary encoding for flexible operation selection
-- **Hardware verification** — Writing exhaustive test benches and interpreting simulation results
-- **Two's complement arithmetic** — Hardware-efficient subtraction by inverting and incrementing
-- **Area-performance-power trade-offs** — Understanding how design choices ripple across multiple metrics simultaneously
-
----
-
-## Author
-
-**[Your Name]**  
-B.Tech / M.Tech in Electronics / VLSI Design  
-[Your Institution]  
-[Your Email or LinkedIn]
-
----
-
-## License
-
-This project is for academic and educational purposes.  
-Feel free to reference or build upon this work with attribution.
+> Note: Replace the tool names above with the exact tools you used in your environment.
